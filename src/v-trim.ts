@@ -1,6 +1,7 @@
 #! /usr/bin/env node
 
 import { argv } from "process";
+import { applyActions } from "./apply";
 import { parseRemove } from "./parser/parseRemove";
 import { parseSpeed } from "./parser/parseSpeed";
 import { parseTrim } from "./parser/parseTrim";
@@ -12,9 +13,10 @@ const main = async () => {
   // reify actions
   const reifiedActions = await reifyActions(args);
 
-  // apply actions
-
   console.log("reified actions: ", reifiedActions);
+
+  // apply actions
+  await applyActions(args, reifiedActions);
 };
 
 const extRegex = /^.*\.(.*?)$/;
