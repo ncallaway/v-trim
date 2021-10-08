@@ -1,7 +1,7 @@
 import { ok, err, Result } from "neverthrow";
 import { parseSlice } from "./parseSlice";
 
-export type TrimResult = Result<Trim, string>;
+export type TrimResult = Result<InputTrim, string>;
 
 export const parseTrim = (remaining: string[]): TrimResult => {
   if (remaining.length == 0) {

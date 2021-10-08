@@ -2,7 +2,7 @@ import { ok, err, Result } from "neverthrow";
 import { parseNumber } from "./parseNumber";
 import { parseSlice } from "./parseSlice";
 
-export type SpeedResult = Result<Speed, string>;
+export type SpeedResult = Result<InputSpeed, string>;
 
 export const parseSpeed = (remaining: string[]): SpeedResult => {
   if (remaining.length < 2) {
@@ -13,7 +13,6 @@ export const parseSpeed = (remaining: string[]): SpeedResult => {
 
   const rawSpeed = remaining.shift() as string;
   const resSpeed = parseNumber(rawSpeed);
-  // deal with the speed
 
   if (resSlice.isErr()) {
     return err(`the slice given to speed was not valid (${rawSlice}: ${resSlice.error})`);

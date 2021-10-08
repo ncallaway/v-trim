@@ -2,7 +2,7 @@ import { err, ok, Result } from "neverthrow";
 import { parseNumber } from "./parseNumber";
 
 type SliceError = string;
-type SliceResult = Result<Slice, SliceError>;
+type SliceResult = Result<InputSlice, SliceError>;
 export const parseSlice = (rawSlice: string): SliceResult => {
   const sliced = rawSlice.split(",");
 
@@ -30,11 +30,11 @@ export const parseSlice = (rawSlice: string): SliceResult => {
   }
 
   if (start.value && !end.value) {
-    return ok({ start: start.value });
+    return ok({ start: start.value, end: undefined });
   }
 
   if (!start.value && end.value) {
-    return ok({ end: end.value });
+    return ok({ start: undefined, end: end.value });
   }
 
   return err("both start and end values were omitted");

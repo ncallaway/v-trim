@@ -25,7 +25,6 @@ export const shell = async (cmd: string) => {
     });
 
     run.on("exit", (code) => {
-      console.log(`command exited with code (${code}: ${cmd})`);
       if (code == 0) {
         resolve({ code, stdout });
       } else {

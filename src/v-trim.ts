@@ -1,27 +1,23 @@
 #! /usr/bin/env node
 
 import { argv } from "process";
+import { parseRemove } from "./parser/parseRemove";
 import { parseSpeed } from "./parser/parseSpeed";
 import { parseTrim } from "./parser/parseTrim";
+import { reifyActions } from "./reify";
 
-const main = () => {
-  const { input, actions, output } = proccessArgs(argv);
+const main = async () => {
+  const args = proccessArgs(argv);
 
-  console.log("input file: ", input);
-  console.log("done actions: ", JSON.stringify(actions, null, 2));
-  console.log("done output: ", output);
+  // reify actions
+  const reifiedActions = await reifyActions(args);
+
+  // apply actions
+
+  console.log("reified actions: ", reifiedActions);
 };
 
-// v-trim [input] --trim "5,16" --speed "[6,7]" .25 --speed "[10,11]" .4 --rm "[8,9]" [output]
-
-// --trim "5,16" => eqivalent to `--rm ",5" --rm "16,`
 const extRegex = /^.*\.(.*?)$/;
-
-type Args = {
-  input: string;
-  actions: Action[];
-  output: string;
-};
 
 const proccessArgs = (args: string[]): Args => {
   let remaining = args.slice(2);
@@ -37,10 +33,8 @@ const proccessArgs = (args: string[]): Args => {
 
   const m = input.match(extRegex);
   if (m && m[1]) {
-    console.log("m is: ", m[1]);
     const lastIdx = input.lastIndexOf(m[1]);
     defaultOutput = input.slice(0, lastIdx - 1) + `.trim.${m[1]}`;
-    console.log("default output is: ", defaultOutput);
   }
 
   if (!output) {
@@ -55,7 +49,7 @@ const proccessArgs = (args: string[]): Args => {
 };
 
 const parseActions = (remaining: string[]) => {
-  const actions: Action[] = [];
+  const actions: InputAction[] = [];
   let output: string | null = null;
 
   while (remaining.length > 0) {
@@ -78,6 +72,14 @@ const parseActions = (remaining: string[]) => {
           process.exit(1);
         }
         actions.push(resSpeed.value);
+        break;
+      case "--rm":
+        const resRemove = parseRemove(remaining);
+        if (resRemove.isErr()) {
+          console.log("An error occurred while processing --rm\n\t", resRemove.error);
+          process.exit(1);
+        }
+        actions.push(resRemove.value);
         break;
       default:
         if (remaining.length == 0) {
