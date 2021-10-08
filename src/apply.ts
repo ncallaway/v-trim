@@ -1,8 +1,10 @@
 import { unlinkSync } from "fs";
 import path from "path";
-import { shell } from "./shell";
+import { shell } from "./lib/shell";
 
-export const applyActions = async (args: Args, actions: Action[]) => {
+export const executePlan = async (args: Args, plan: GenerationPlan) => {
+  const { actions } = plan;
+
   // tmp for dev iteration:
   const tmpFile = Math.random().toString(16).slice(2);
   const tmpPath = path.join("/tmp", `v-trim-${tmpFile}.mp4`);
@@ -16,7 +18,7 @@ export const applyActions = async (args: Args, actions: Action[]) => {
     await shell(reduceCmd);
 
     // now generate the filter and run it
-    const filterString = generateFilterString(actions);
+    const filterString = generateFilterString(actions, plan.includeAudio);
 
     const concatCmd = `ffmpeg -y -i ${tmpPath} ${filterString} ${args.output}`;
     await shell(concatCmd);
@@ -25,7 +27,7 @@ export const applyActions = async (args: Args, actions: Action[]) => {
   }
 };
 
-const generateFilterString = (actions: Action[]): string => {
+const generateFilterString = (actions: Action[], includeAudio: boolean): string => {
   const filterActions = actions.filter((a) => a.action != "rm");
 
   const nodes: string[] = [];
@@ -42,16 +44,22 @@ const generateFilterString = (actions: Action[]): string => {
     const vsuffix = `[v${idx + 1}]`;
     nodes.push(`${vprefix}${vtrim},${vsetpts}${vsuffix}`);
 
-    const aprefix = "[0:a]";
-    const atrim = `atrim=${a.slice.start}:${a.slice.end}`;
-    const asetpts = atempo ? `asetpts=PTS-STARTPTS,${atempo}` : `asetpts=PTS-STARTPTS`;
-    const asuffix = `[a${idx + 1}]`;
-    nodes.push(`${aprefix}${atrim},${asetpts}${asuffix}`);
+    streams += `${vsuffix}`;
 
-    streams += `${vsuffix}${asuffix}`;
+    if (includeAudio) {
+      const aprefix = "[0:a]";
+      const atrim = `atrim=${a.slice.start}:${a.slice.end}`;
+      const asetpts = atempo ? `asetpts=PTS-STARTPTS,${atempo}` : `asetpts=PTS-STARTPTS`;
+      const asuffix = `[a${idx + 1}]`;
+      nodes.push(`${aprefix}${atrim},${asetpts}${asuffix}`);
+      streams += `${asuffix}`;
+    }
   }
 
-  const concat = `concat=n=${filterActions.length}:v=1:a=1`;
+  let concat = `concat=n=${filterActions.length}:v=1`;
+  if (includeAudio) {
+    concat += ":a=1";
+  }
   nodes.push(`${streams}${concat}`);
 
   return `-filter_complex "${nodes.join(";")}"`;

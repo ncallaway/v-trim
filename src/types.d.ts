@@ -56,3 +56,8 @@ type NullAction = {
 };
 
 type Action = RemoveAction | SpeedAction | NullAction;
+
+type GenerationPlan = {
+  actions: Action[];
+  includeAudio: boolean;
+};
