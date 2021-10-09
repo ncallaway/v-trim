@@ -27,11 +27,34 @@ describe("parseCommandLine", () => {
       expect(res.input).toEqual("file");
       expect(res.output).toEqual("~/result.mp4");
     });
+
+    it("should parse a valid trim", () => {
+      const res = parseCommandLine([...i, "file.mp4", "--trim", ",5"])._unsafeUnwrap();
+      expect(res.actions).toEqual<InputAction[]>([
+        {
+          action: "trim",
+          slice: {
+            start: undefined,
+            end: 5,
+          },
+        },
+      ]);
+    });
   });
 
   describe("failure", () => {
     it("requires an input file", () => {
       const res = parseCommandLine([...i]);
+      expect(res.isOk()).toEqual(false);
+    });
+
+    it("requires slice after --trim", () => {
+      const res = parseCommandLine([...i, "file.mp4", "--trim"]);
+      expect(res.isOk()).toEqual(false);
+    });
+
+    it("requires valid slice after --trim", () => {
+      const res = parseCommandLine([...i, "file.mp4", "--trim", "out.mp4"]);
       expect(res.isOk()).toEqual(false);
     });
   });
