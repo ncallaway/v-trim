@@ -1,9 +1,8 @@
-import { parseNumber } from "./parser/parseNumber";
-import { shell } from "./lib/shell";
+import { Probe } from "./lib/probe";
 
 export const generatePlan = async (args: Args): Promise<GenerationPlan> => {
-  const duration = await probeInputDuration(args.input);
-  const hasAudio = await probeInputHasAudio(args.input);
+  const duration = await Probe.inputDuration(args.input);
+  const hasAudio = await Probe.inputHasAudio(args.input);
 
   // map actions to concrete actions
   const actions = mapInputActions(args.actions, duration);
@@ -58,6 +57,7 @@ const validateOverlaps = (gaps: Slice[]) => {
     console.log("an overlap was detected.");
     process.exit(1);
   }
+  ``;
 };
 
 const findGaps = (actions: Action[], duration: number) => {
@@ -144,32 +144,4 @@ const mapInputActions = (actions: InputAction[], duration: number): Action[] => 
         process.exit(1);
     }
   });
-};
-
-const probeInputDuration = async (input: string): Promise<number> => {
-  const cmd = `ffprobe -v error -show_entries format=duration -of default=noprint_wrappers=1:nokey=1 ${input}`;
-
-  const { stdout } = await shell(cmd);
-  const resDuration = parseNumber(stdout.trim());
-
-  if (resDuration.isErr()) {
-    console.log(`failed to calculate the duration of ${input}`);
-    process.exit(1);
-  }
-
-  if (!resDuration.value) {
-    console.log(`failed to calculate the duration of ${input}`);
-    process.exit(1);
-  }
-
-  return resDuration.value;
-};
-
-const probeInputHasAudio = async (input: string): Promise<boolean> => {
-  const cmd = `ffprobe -i ${input} -show_streams -select_streams a -loglevel error`;
-
-  const { stdout } = await shell(cmd);
-  const hasAudio = Boolean(stdout.trim());
-
-  return hasAudio;
 };
