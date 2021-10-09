@@ -8,11 +8,16 @@ import { generatePlan } from "./plan";
 const main = async () => {
   const args = parseCommandLine(argv);
 
+  if (args.isErr()) {
+    console.log(`Argument error: ${args.error}`);
+    process.exit(1);
+  }
+
   // generate plan
-  const plan = await generatePlan(args);
+  const plan = await generatePlan(args.value);
 
   // apply actions
-  await executePlan(args, plan);
+  await executePlan(args.value, plan);
 };
 
 

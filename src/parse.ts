@@ -1,39 +1,48 @@
+import { ok, err, Result } from "neverthrow";
 import { parseRemove } from "./parser/parseRemove";
 import { parseSpeed } from "./parser/parseSpeed";
 import { parseTrim } from "./parser/parseTrim";
 
 const extRegex = /^.*\.(.*?)$/;
 
-export const parseCommandLine = (args: string[]): Args => {
+type ParseResult = Result<Args, string>;
+
+export const parseCommandLine = (args: string[]): ParseResult => {
   let remaining = args.slice(2);
   if (remaining.length == 0 || !remaining[0]) {
-    console.log("An input file must be provided");
-    process.exit(1);
+    return err("An input file must be provided");
   }
 
   let input = remaining.shift() as string;
-  let { actions, output } = parseActions(remaining);
 
-  let defaultOutput = `${input}.trim`;
+  return parseActions(remaining).map(({ actions, output }) => {
+    let defaultOutput = `${input}.trim.mp4`;
 
-  const m = input.match(extRegex);
-  if (m && m[1]) {
-    const lastIdx = input.lastIndexOf(m[1]);
-    defaultOutput = input.slice(0, lastIdx - 1) + `.trim.${m[1]}`;
-  }
+    const m = input.match(extRegex);
+    if (m && m[1]) {
+      const lastIdx = input.lastIndexOf(m[1]);
+      defaultOutput = input.slice(0, lastIdx - 1) + `.trim.${m[1]}`;
+    }
 
-  if (!output) {
-    output = defaultOutput;
-  }
+    if (!output) {
+      output = defaultOutput;
+    }
 
-  return {
-    input,
-    actions,
-    output,
-  };
+    return {
+      input,
+      actions,
+      output,
+    };
+  });
 };
 
-const parseActions = (remaining: string[]) => {
+type ParsedActions = {
+  actions: InputAction[];
+  output: string | null;
+};
+
+type InputActionResult = Result<ParsedActions, string>;
+const parseActions = (remaining: string[]): InputActionResult => {
   const actions: InputAction[] = [];
   let output: string | null = null;
 
@@ -44,8 +53,7 @@ const parseActions = (remaining: string[]) => {
       case "--trim":
         const resTrim = parseTrim(remaining);
         if (resTrim.isErr()) {
-          console.log("An error occurred while processing --trim\n\t", resTrim.error);
-          process.exit(1);
+          return err(`An error occurred while processing --trim: ${resTrim.error}`);
         }
         actions.push(resTrim.value);
         break;
@@ -53,16 +61,14 @@ const parseActions = (remaining: string[]) => {
       case "--speed":
         const resSpeed = parseSpeed(remaining);
         if (resSpeed.isErr()) {
-          console.log("An error occurred while processing --speed\n\t", resSpeed.error);
-          process.exit(1);
+          return err(`An error occurred while processing --speed: ${resSpeed.error}`);
         }
         actions.push(resSpeed.value);
         break;
       case "--rm":
         const resRemove = parseRemove(remaining);
         if (resRemove.isErr()) {
-          console.log("An error occurred while processing --rm\n\t", resRemove.error);
-          process.exit(1);
+          return err(`An error occurred while processing --rm: ${resRemove.error}`);
         }
         actions.push(resRemove.value);
         break;
@@ -76,5 +82,5 @@ const parseActions = (remaining: string[]) => {
     }
   }
 
-  return { actions, output };
+  return ok({ actions, output });
 };
