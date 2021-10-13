@@ -19,7 +19,7 @@ Finally, the tool also allows for small edits and changes of the input recording
 
 ## Installation
 
-`npm install -g v-trim`
+`npm install -g v-trim-cli`
 
 ## Options
 
