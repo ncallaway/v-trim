@@ -1,11 +1,16 @@
+import { ok, err, Result } from "neverthrow";
 import { Probe } from "./lib/probe";
 
-export const generatePlan = async (args: Args): Promise<GenerationPlan> => {
+export const generatePlan = async (args: Args): Promise<Result<GenerationPlan, string>> => {
   const duration = await Probe.inputDuration(args.input);
   const hasAudio = await Probe.inputHasAudio(args.input);
 
   // map actions to concrete actions
-  const actions = mapInputActions(args.actions, duration);
+  const resActions = mapInputActions(args.actions, duration);
+  if (resActions.isErr()) {
+    return err(resActions.error);
+  }
+  const actions = resActions.value;
 
   // clamp actions to 0
   clampActions(actions, duration);
@@ -17,7 +22,9 @@ export const generatePlan = async (args: Args): Promise<GenerationPlan> => {
   const gaps = findGaps(actions, duration);
 
   // ensure no overlaps
-  validateOverlaps(gaps);
+  if (anyOverlaps(gaps)) {
+    return err("an overlap was detected.");
+  }
 
   // fill gaps with nulls
   fillNulls(actions, gaps);
@@ -25,7 +32,7 @@ export const generatePlan = async (args: Args): Promise<GenerationPlan> => {
   // sort the nulls into place
   sortActions(actions);
 
-  return { actions, includeAudio: hasAudio };
+  return ok({ actions, includeAudio: hasAudio });
 };
 
 const fillNulls = (actions: Action[], gaps: Slice[]) => {
@@ -49,15 +56,9 @@ const clampActions = (actions: Action[], duration: number) => {
   });
 };
 
-const validateOverlaps = (gaps: Slice[]) => {
+const anyOverlaps = (gaps: Slice[]): boolean => {
   // if any gaps *end* before they  *start*, there is an overlap between sections
-  const anyOverlaps = gaps.some((g) => g.end < g.start);
-
-  if (anyOverlaps) {
-    console.log("an overlap was detected.");
-    process.exit(1);
-  }
-  ``;
+  return gaps.some((g) => g.end < g.start);
 };
 
 const findGaps = (actions: Action[], duration: number) => {
@@ -95,53 +96,58 @@ const sortActions = (actions: Action[]) => {
   actions.sort((a, b) => a.slice.start - b.slice.start);
 };
 
-const mapInputActions = (actions: InputAction[], duration: number): Action[] => {
-  return actions.flatMap((action) => {
-    switch (action.action) {
-      case "speed":
-        const act: SpeedAction = {
-          action: "speed",
-          slice: {
+const mapInputActions = (actions: InputAction[], duration: number): Result<Action[], string> => {
+  try {
+    const results = actions.flatMap((action) => {
+      switch (action.action) {
+        case "speed":
+          const act: SpeedAction = {
+            action: "speed",
+            slice: {
+              start: action.slice.start || 0,
+              end: action.slice.end || duration,
+            },
+            speed: action.speed,
+          };
+          return [act] as Action[];
+        case "rm":
+          const rm: RemoveAction = {
+            action: "rm",
+            slice: {
+              start: action.slice.start || 0,
+              end: action.slice.end || duration,
+            },
+          };
+          return [rm] as Action[];
+        case "trim":
+          const slice: Slice = {
             start: action.slice.start || 0,
             end: action.slice.end || duration,
-          },
-          speed: action.speed,
-        };
-        return [act] as Action[];
-      case "rm":
-        const rm: RemoveAction = {
-          action: "rm",
-          slice: {
-            start: action.slice.start || 0,
-            end: action.slice.end || duration,
-          },
-        };
-        return [rm] as Action[];
-      case "trim":
-        const slice: Slice = {
-          start: action.slice.start || 0,
-          end: action.slice.end || duration,
-        };
+          };
 
-        const head: RemoveAction = {
-          action: "rm",
-          slice: {
-            start: 0,
-            end: slice.start,
-          },
-        };
-        const tail: RemoveAction = {
-          action: "rm",
-          slice: {
-            start: slice.end,
-            end: duration,
-          },
-        };
-        return [head, tail] as Action[];
-      default:
-        // @ts-ignore
-        console.log("unrecognized input action: ", action.action);
-        process.exit(1);
-    }
-  });
+          const head: RemoveAction = {
+            action: "rm",
+            slice: {
+              start: 0,
+              end: slice.start,
+            },
+          };
+          const tail: RemoveAction = {
+            action: "rm",
+            slice: {
+              start: slice.end,
+              end: duration,
+            },
+          };
+          return [head, tail] as Action[];
+        default:
+          // @ts-ignore
+          throw new Error(`unrecognized input action: ${action.action}`);
+      }
+    });
+
+    return ok(results);
+  } catch (error) {
+    return err("" + error);
+  }
 };

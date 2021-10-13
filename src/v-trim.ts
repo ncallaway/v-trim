@@ -9,12 +9,17 @@ const main = async () => {
   const args = parseCommandLine(argv);
 
   if (args.isErr()) {
-    console.log(`Argument error: ${args.error}`);
+    console.error(`Argument error: ${args.error}`);
     process.exit(1);
   }
 
   // generate plan
-  const plan = await generatePlan(args.value);
+  const resPlan = await generatePlan(args.value);
+  if (resPlan.isErr()) {
+    console.error(resPlan.error);
+    process.exit(1);
+  }
+  const plan = resPlan.value;
 
   // apply actions
   await executePlan(args.value, plan);

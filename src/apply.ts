@@ -11,9 +11,11 @@ export const executePlan = async (args: Args, plan: GenerationPlan) => {
 
   // create a temp file for the intermediate result
   try {
-    // todo: trim start and end if possible with
-    // -ss 5 (start)
-    // -to 30 (end)
+    // note: we make two separate calls to ffmpeg because I'm lazy and haven't investigated how to combined these options
+    // with the filter string that we generate and this works well enough. These don't combine naively, but I'm sure
+    // there's a better way to do this all in a single pass.
+
+    // todo: trim start and end if possible with: -ss 5 (start) and -to 30 (end)
     const reduceCmd = `ffmpeg -y -i ${args.input} -vcodec libx265 -vf "scale='min(1000,iw)':-2" -crf 30 -r 20 ${tmpPath}`;
     await shell(reduceCmd);
 
