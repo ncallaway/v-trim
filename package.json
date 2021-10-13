@@ -1,5 +1,5 @@
 {
-  "name": "v-trim",
+  "name": "v-trim-cli",
   "version": "0.0.1",
   "description": "Simple video trimming utility",
   "main": "index.js",
