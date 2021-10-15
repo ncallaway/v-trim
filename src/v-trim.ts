@@ -1,7 +1,7 @@
 #! /usr/bin/env node
 
 import { argv } from "process";
-import { executePlan } from "./apply";
+import { executePlan } from "./execute";
 import { parseCommandLine } from "./parse";
 import { generatePlan } from "./plan";
 

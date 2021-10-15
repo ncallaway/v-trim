@@ -6,7 +6,8 @@
   "scripts": {
     "build": "npx tsc",
     "dev": "npx tsc --watch",
-    "test": "npx jest"
+    "test": "npx jest",
+    "test:coverage": "npx jest --coverage --coverage-directory='coverage' && echo '\nopen ./coverage/lcov-report/index.html'"
   },
   "author": "",
   "license": "ISC",

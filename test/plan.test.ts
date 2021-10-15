@@ -1,6 +1,7 @@
 import { ok } from "neverthrow";
 import { Probe } from "../src/lib/probe";
 import { generatePlan } from "../src/plan";
+import { argRm, argSpeed, argTrim, nul, rm } from "./util";
 
 jest.mock("../src/lib/probe");
 
@@ -70,31 +71,3 @@ describe("generatePlan", () => {
   });
 });
 
-const argTrim = (start: number | undefined, end: number | undefined): InputAction => ({
-  action: "trim",
-  slice: { start, end } as any,
-});
-
-const argRm = (start: number | undefined, end: number | undefined): InputAction => ({
-  action: "rm",
-  slice: { start, end } as any,
-});
-
-const argSpeed = (start: number | undefined, end: number | undefined, speed: number = 2): InputAction => ({
-  action: "speed",
-  slice: { start, end } as any,
-  speed,
-});
-
-const rm = (start: number, end: number): Action => ({
-  action: "rm",
-  slice: { start, end },
-});
-
-const nul = (start: number, end: number): Action => ({
-  action: "null",
-  slice: {
-    start,
-    end,
-  },
-});
